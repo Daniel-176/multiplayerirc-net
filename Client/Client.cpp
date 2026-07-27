@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <iostream>
 #include <ixwebsocket/IXWebSocketMessage.h>
 #include <ixwebsocket/IXWebSocketMessageType.h>
@@ -38,11 +39,14 @@ class User {
 class Client {
     public: 
         bool isConnected = false;
-        User user;
+        thread pingThread;
+        float serverTime;
+        json channel;
+        json ppl;
+        json user;
 
         Client(string TOKEN) {
             this->TOKEN = TOKEN;
-            this->user = User();
             bindEventListeners();
         };
 
@@ -74,6 +78,35 @@ class Client {
             on("b", [this](auto msg) {
                 cout << "<b>";
             });
+
+            on("hi", [this](auto msg) {
+                serverTime = msg["t"];
+                ppl = msg["ppl"];
+
+                // yeah i completely ignored the user class.
+                user = msg["u"];
+            });
+
+            on("ch", [this](auto msg) {
+                channel = msg["ch"];
+                ppl = msg["ppl"];
+            });
+
+            on("p", [this](auto part) {
+                if(!ppl.contains(part["id"])) {
+                    ppl[part["id"]] = part;
+                    emit("participant added", part);
+                } else {
+                    ppl[part["id"]] = part;
+                    emit("participant update", ppl[part["id"]]);
+                }
+            });
+
+            on("bye", [this](auto msg) {
+                ppl = {};
+                user = {};
+                serverTime = 0;
+            });
         };
 
         long long DateNow() {
@@ -81,14 +114,80 @@ class Client {
             return duration_cast<milliseconds>(
                 system_clock::now().time_since_epoch()
             ).count();
-        }
+        };
 
         void sendPing() {
             sendArray({
                 {"m", "t"},
                 {"e", DateNow()}
             });
-        }
+        };
+
+        void setChannel(string channel) {
+            sendArray({
+                {"m", "ch"},
+                {"_id", channel}
+            });
+        };
+
+        // Client stuff
+
+        void setName(string name) {
+            sendArray({
+                {"m", "userset"},
+                {"set", {
+                    {"name", name}
+                }}
+            });
+        };
+
+        void setColor(string color) {
+            sendArray({
+                {"m", "userset"},
+                {"set", {
+                    {"color", color}
+                }}
+            });
+        };
+
+        void userset(json set) {
+            sendArray({
+                {"m", "userset"},
+                {"set", set}
+            });
+        };
+
+        void say(string message) {
+            sendArray({
+                {"m", "a"},
+                {"message", message}
+            });
+        };
+
+        void moveMouse(float x, float y) {
+            sendArray({
+                {"m", "m"},
+                {"x", x},
+                {"y", y}
+            });
+        };
+
+        // Room Management
+
+        void kickBan(string _id, float ms) {
+            sendArray({
+                {"m", "kickban"},
+                {"_id", _id},
+                {"ms", ms}
+            });
+        };
+
+        void chown(string _id) {
+            sendArray({
+                {"m", "chown"},
+                {"id", _id}
+            });
+        };
 
         void start() {
             if (isConnected == true) return;
@@ -125,13 +224,13 @@ class Client {
                         {"token", TOKEN}
                     });
 
-                    std::thread([this]() {
+                    pingThread = std::thread([this]() {
                         while (isConnected)
                         {
                             sendPing();
                             std::this_thread::sleep_for(std::chrono::seconds(20));
                         }
-                    }).detach();
+                    });
                 }
                 else if (msg->type == ix::WebSocketMessageType::Error)
                 {
@@ -150,6 +249,12 @@ class Client {
                         << endl;
 
                     isConnected = false;
+
+                    if (pingThread.joinable())
+                    {
+                        pingThread.join();
+                    }
+
                     std::this_thread::sleep_for(std::chrono::seconds(1));
                     ws.connect(5);
                 }
@@ -158,8 +263,7 @@ class Client {
 
             ws.connect(5);
             ws.start();
-        }
-    
+        };
     private:
         map<string, vector<function<void(const Message&)>>> listeners;
         string TOKEN;
