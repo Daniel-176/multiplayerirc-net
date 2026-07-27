@@ -4,8 +4,8 @@ int main() {
     Client client = Client("[REDACTED]");
     console_log("Hi!");
 
-    client.on("hi", [](auto msg) {
-        std::cout << "hi";
+    client.on("hi", [&client](auto msg) {
+        client.setChannel("hello hello");
     });
 
     client.start();
