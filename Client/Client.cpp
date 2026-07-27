@@ -10,6 +10,7 @@
 #include <chrono>
 #include <nlohmann/json.hpp>
 #include <ixwebsocket/IXWebSocket.h>
+#include "Utils.cpp"
 
 using json = nlohmann::json;
 using Message = nlohmann::json;
@@ -37,16 +38,17 @@ class User {
 class Client {
     public: 
         bool isConnected = false;
+        User user;
 
         Client(string TOKEN) {
             this->TOKEN = TOKEN;
+            this->user = User();
             bindEventListeners();
         };
 
         ix::WebSocket ws;
 
         void emit(const std::string& event, const Message& message) {
-            cout << "EMIT: " << event << endl;
             if (listeners.find(event) != listeners.end()) {
                 for (auto& callback : listeners[event])
                 {
@@ -74,41 +76,62 @@ class Client {
             });
         };
 
+        long long DateNow() {
+            using namespace std::chrono;
+            return duration_cast<milliseconds>(
+                system_clock::now().time_since_epoch()
+            ).count();
+        }
+
+        void sendPing() {
+            sendArray({
+                {"m", "t"},
+                {"e", DateNow()}
+            });
+        }
+
         void start() {
             if (isConnected == true) return;
 
             ws.setUrl("wss://backend.multiplayerpiano.net/");
-
+            
             ws.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
                 if (msg->type == ix::WebSocketMessageType::Message)
                 {
-                    cout << "RAW: " << msg->str << endl;
-                    try {
+                    try
+                    {
                         auto messages = json::parse(msg->str);
 
-                        for(auto& message : messages)
+                        for (auto& message : messages)
                         {
-                            if(message.contains("m"))
+                            if (message.contains("m"))
                             {
                                 emit(message["m"], message);
                             }
                         }
-                        cout << msg->str;
-                    } catch (const json::parse_error& e) {
-                        cout << "JSON inválido: " << e.what();
+                    }
+                    catch (const std::exception& e)
+                    {
+                        cout << "Error: " << e.what() << endl;
+                        cout << "msg: " << msg->str << endl;
                     }
                 }
                 else if (msg->type == ix::WebSocketMessageType::Open)
                 {
-                    emit("connected", {
-                        {"ws-state", ws.getReadyState()}
-                    });
                     isConnected = true;
 
                     sendArray({
                         {"m", "hi"},
                         {"token", TOKEN}
                     });
+
+                    std::thread([this]() {
+                        while (isConnected)
+                        {
+                            sendPing();
+                            std::this_thread::sleep_for(std::chrono::seconds(20));
+                        }
+                    }).detach();
                 }
                 else if (msg->type == ix::WebSocketMessageType::Error)
                 {
@@ -134,6 +157,7 @@ class Client {
 
 
             ws.connect(5);
+            ws.start();
         }
     
     private:
