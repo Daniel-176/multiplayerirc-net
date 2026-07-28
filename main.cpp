@@ -1,10 +1,17 @@
 #include "Client/Client.cpp"
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 
 json settings;
 string currentInput;
 vector<string> history;
+
+const string RESET  = "\033[0m";
+const string BOLD   = "\033[1m";
+const string DIM    = "\033[2m";
+const string ITALIC = "\033[3m";
+const string UNDER  = "\033[4m";
 
 string hexToAnsi(const std::string& hex)
 {
@@ -18,6 +25,29 @@ string hexToAnsi(const std::string& hex)
            std::to_string(b) + "m";
 }
 
+// The stylizing won't work since it's not lively changed, kinda lazy to do a redraw function.
+void drawPrompt() {
+    cout << "> ";
+    if(!currentInput.empty() && currentInput[0] == '/') {
+        size_t space = currentInput.find(" ");
+
+        if(space == string::npos) {
+            cout << "\033[1;34m"
+                 << currentInput
+                 << "\033[0m";
+        } else {
+            cout << "\033[1;34m"
+                 << currentInput.substr(0, space)
+                 << "\033[0m"
+                 << currentInput.substr(space);
+        }
+    } else {
+        cout << currentInput;
+    }
+
+    cout << flush;
+}
+
 void printMessage(const string& msg) { 
     history.push_back(msg);
     cout << "\033[2J\033[H"; 
@@ -25,7 +55,13 @@ void printMessage(const string& msg) {
     {
         cout << msg << '\n';
     }
-    cout << "> " << currentInput << flush;
+    drawPrompt();
+}
+
+void clear() {
+    history.clear();
+    cout << "\033[2J\033[H"; 
+    drawPrompt();
 }
 
 void loadConfig() {
@@ -75,6 +111,7 @@ int main() {
     });
 
     client.on("ch", [&client](auto msg) {
+        clear();
         printMessage("Joined room "+client.channelName);
     });
 
@@ -104,7 +141,41 @@ int main() {
 
     client.start();
 
-    while (true) {
-        this_thread::sleep_for(chrono::seconds(1));
-    }
+    thread inputThread([&]() {
+        while (true)
+        {
+            getline(std::cin, currentInput);
+
+            if (currentInput.empty())
+                continue;
+
+            if (currentInput[0] == '/')
+            {
+                if (currentInput.rfind("/nick ", 0) == 0)
+                {
+                    client.setName(currentInput.substr(6));
+                }
+                else if (currentInput.rfind("/join ", 0) == 0)
+                {
+                    client.setChannel(currentInput.substr(6));
+                }
+                else if (currentInput.rfind("/color ", 0) == 0)
+                {
+                    client.setColor(currentInput.substr(7));
+                }
+                else
+                {
+                    printMessage("Unknown command.");
+                }
+            }
+            else
+            {
+                client.say(currentInput);
+            }
+
+            currentInput.clear();
+        }
+    });
+
+    inputThread.join();
 }
