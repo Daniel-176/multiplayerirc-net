@@ -2,6 +2,11 @@
 
 My first project coded in C++
 
+It is a MultiplayerPiano.net client based on the good ol' IRC terminal-based clients
+
+
+I had this idea a while ago and wanted to put it outside papers, I took advantage of that to learn C++
+
 ## Preview
 
 https://github.com/user-attachments/assets/11f24b7b-3645-4990-9024-225ee10fbf9e
