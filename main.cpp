@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <fstream>
+#include <string>
 
 json settings;
 string currentInput;
@@ -13,6 +14,16 @@ const string BOLD   = "\033[1m";
 const string DIM    = "\033[2m";
 const string ITALIC = "\033[3m";
 const string UNDER  = "\033[4m";
+
+vector<string> ascii = {
+    " __  __ ____  ____",
+    "| \\/  |  _ \\\\|  _ \\",
+    "| |\\/| | |_) | |_) |",
+    "| |  | |  __/|  __/",
+    "|_|  |_|_|   |_|",
+    "",
+    "Multiplayer Piano Terminal Client"
+};
 
 string hexToAnsi(const std::string& hex)
 {
@@ -102,18 +113,20 @@ string getToken() {
 
 int main(int argc, char *argv[]) {
     loadConfig();
-
-    for(int i = 0; i < argc; i++) {
+    string programName = argv[0];
+    for(int i = 1; i < argc; i++) {
         string arg = argv[i];
 
         if(arg == "--help" || arg == "-h" || arg == "help") {
-            console_log("Usage: mpp [CHANNEL]");
+            for (const auto& line : ascii)
+                cout << line << endl;
+            console_log("Usage: "+programName+" [CHANNEL]");
             console_log("\nIn-Client commands:");
-            console_log("\n\n/nick [USERNAME]   -   Sets your name in MPP.");
-            console_log("\n/join [CHANNEL]   -   Join a channel in MPP.");
-            console_log("\n/color [HEX]   -   Sets your color in MPP.");
+            console_log("\n/nick [USERNAME]   -   Sets your name in MPP.");
+            console_log("/join [CHANNEL]   -   Join a channel in MPP.");
+            console_log("/color [HEX]   -   Sets your color in MPP.");
 
-            console_log("\n\nExamples:\n\n/nick foo bar\n/join The Roleplay Room\n/color #ffd700\n");
+            console_log("\nExamples:\n\n/nick foo bar\n/join The Roleplay Room\n/color #ffd700\n");
             return 0;
         }
 
@@ -122,7 +135,7 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
-        if(arg[0] == '-') break;
+        if(arg[0] == '-') continue;
 
         if(i == 1) {
             desiredChannel = arg;
@@ -133,7 +146,13 @@ int main(int argc, char *argv[]) {
     printMessage("Hi! Logging in MPP!");
 
     client.on("hi", [&client](auto msg) {
-        client.setChannel("lobby");
+        if(!desiredChannel.empty()) {
+            client.setChannel(desiredChannel);
+        } else {
+            client.setChannel("lobby");
+        }
+        for (const auto& line : ascii)
+            printMessage(line);
         printMessage("Logged in as " + msg["u"]["name"].template get<string>());
     });
 
