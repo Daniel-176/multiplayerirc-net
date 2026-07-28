@@ -42,7 +42,7 @@ class Client {
         thread pingThread;
         float serverTime;
         json channel;
-        json ppl;
+        json ppl = json::object();
         json user;
 
         Client(string TOKEN) {
