@@ -5,6 +5,7 @@
 
 json settings;
 string currentInput;
+string desiredChannel;
 vector<string> history;
 
 const string RESET  = "\033[0m";
@@ -99,8 +100,34 @@ string getToken() {
     return "error";
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     loadConfig();
+
+    for(int i = 0; i < argc; i++) {
+        string arg = argv[i];
+
+        if(arg == "--help" || arg == "-h" || arg == "help") {
+            console_log("Usage: mpp [CHANNEL]");
+            console_log("\nIn-Client commands:");
+            console_log("\n\n/nick [USERNAME]   -   Sets your name in MPP.");
+            console_log("\n/join [CHANNEL]   -   Join a channel in MPP.");
+            console_log("\n/color [HEX]   -   Sets your color in MPP.");
+
+            console_log("\n\nExamples:\n\n/nick foo bar\n/join The Roleplay Room\n/color #ffd700\n");
+            return 0;
+        }
+
+        if(arg == "--version" || arg == "-v" || arg == "version") {
+            console_log("idk.");
+            return 0;
+        }
+
+        if(arg[0] == '-') break;
+
+        if(i == 1) {
+            desiredChannel = arg;
+        }
+    }
 
     Client client = Client(getToken());
     printMessage("Hi! Logging in MPP!");
