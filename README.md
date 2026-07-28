@@ -1,6 +1,10 @@
 # multiplayerirc-net
 
-my first try in coding in C++, learning how to do it.
+My first project coded in C++
+
+## Preview
+
+https://github.com/user-attachments/assets/11f24b7b-3645-4990-9024-225ee10fbf9e
 
 ## How to debug
 
