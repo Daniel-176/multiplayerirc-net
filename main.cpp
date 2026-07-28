@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
             console_log("/join [CHANNEL]   -   Join a channel in MPP.");
             console_log("/color [HEX]   -   Sets your color in MPP.");
 
-            console_log("\nExamples:\n\n/nick foo bar\n/join The Roleplay Room\n/color #ffd700\n");
+            console_log("\nExamples:\n\n/nick foo bar\n/join The Roleplay Room\n/color #ffd700\n\nmpp \"The Roleplay Room\"\nmpp --help\n mpp --version");
             return 0;
         }
 
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
             return 0;
         }
 
-        if(arg[0] == '-') continue;
+        if(arg[0] == '-');
 
         if(i == 1) {
             desiredChannel = arg;
