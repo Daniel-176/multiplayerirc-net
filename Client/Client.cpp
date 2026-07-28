@@ -42,6 +42,7 @@ class Client {
         thread pingThread;
         float serverTime;
         json channel;
+        string channelName;
         json ppl = json::object();
         json user;
 
@@ -89,6 +90,7 @@ class Client {
 
             on("ch", [this](auto msg) {
                 channel = msg["ch"];
+                channelName = msg["ch"]["id"];
                 ppl = msg["ppl"];
             });
 

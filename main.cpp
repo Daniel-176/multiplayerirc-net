@@ -3,6 +3,30 @@
 #include <fstream>
 
 json settings;
+string currentInput;
+vector<string> history;
+
+string hexToAnsi(const std::string& hex)
+{
+    int r = std::stoi(hex.substr(1, 2), nullptr, 16);
+    int g = std::stoi(hex.substr(3, 2), nullptr, 16);
+    int b = std::stoi(hex.substr(5, 2), nullptr, 16);
+
+    return "\033[38;2;" +
+           std::to_string(r) + ";" +
+           std::to_string(g) + ";" +
+           std::to_string(b) + "m";
+}
+
+void printMessage(const string& msg) { 
+    history.push_back(msg);
+    cout << "\033[2J\033[H"; 
+    for (const auto& msg : history)
+    {
+        cout << msg << '\n';
+    }
+    cout << "> " << currentInput << flush;
+}
 
 void loadConfig() {
     std::ifstream in("config.json");    
@@ -43,18 +67,44 @@ int main() {
     loadConfig();
 
     Client client = Client(getToken());
-    console_log("Hi!");
+    printMessage("Hi! Logging in MPP!");
 
     client.on("hi", [&client](auto msg) {
-        client.setChannel("hello hello");
-        if(msg["u"]["name"] != "C++") {
-            client.setName("C++");
+        client.setChannel("lobby");
+        printMessage("Logged in as " + msg["u"]["name"].template get<string>());
+    });
+
+    client.on("ch", [&client](auto msg) {
+        printMessage("Joined room "+client.channelName);
+    });
+
+    client.on("c", [&client](auto msg) {
+        for (auto chatMessage : msg["c"]) {
+            printMessage(
+                hexToAnsi(chatMessage["p"]["color"].template get<string>()) +
+                "[" +
+                chatMessage["p"]["name"].template get<string>() +
+                "] " +
+                chatMessage["a"].template get<string>() + 
+                "\033[0m"
+            );
         }
+    });
+
+    client.on("a", [](auto msg) {
+        printMessage(
+            hexToAnsi(msg["p"]["color"].template get<string>()) +
+            "[" +
+            msg["p"]["name"].template get<string>() +
+            "] " +
+            msg["a"].template get<string>() + 
+            "\033[0m"
+        );
     });
 
     client.start();
 
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        this_thread::sleep_for(chrono::seconds(1));
     }
 }
