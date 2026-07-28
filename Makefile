@@ -7,7 +7,7 @@ BUILD_DIR := build
 DIST_DIR  := dist
 
 OBJ      := $(BUILD_DIR)/main.o
-TARGET   := $(DIST_DIR)/main
+TARGET   := $(DIST_DIR)/mpp
 
 .PHONY: all clean run
 
